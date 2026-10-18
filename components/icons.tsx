@@ -27,3 +27,9 @@ export const SearchIcon = ({ size = 13 }: P) => (
     <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.2" />
   </svg>
 )
+
+export const TrashIcon = ({ size = 13 }: P) => (
+  <svg {...base(size)}>
+    <path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+)

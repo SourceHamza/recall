@@ -1,11 +1,11 @@
 'use client'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { initials } from '@/lib/utils'
 import type { Project } from '@/lib/types'
-import { FolderIcon, PinIcon, PlusIcon, StackIcon } from './icons'
+import { FolderIcon, PinIcon, PlusIcon, StackIcon, TrashIcon } from './icons'
 import AddBitDialog from './AddBitDialog'
 import SettingsDialog from './SettingsDialog'
 
@@ -19,14 +19,25 @@ export default function Sidebar({ projects, userId, email, name }: Props) {
   const [settings, setSettings] = useState(false)
   const [naming, setNaming] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [items, setItems] = useState(projects)
+  useEffect(() => setItems(projects), [projects])
 
-  const pinned = projects.filter((p) => p.is_pinned)
-  const rest = projects.filter((p) => !p.is_pinned)
+  const pinned = items.filter((p) => p.is_pinned)
+  const rest = items.filter((p) => !p.is_pinned)
 
   async function togglePin(p: Project) {
     const { error } = await supabase.from('projects').update({ is_pinned: !p.is_pinned }).eq('id', p.id)
     if (error) setError(error.message)
     else router.refresh()
+  }
+
+  async function deleteProject(p: Project) {
+    if (!window.confirm(`Delete "${p.name}" and all its bits? This can't be undone.`)) return
+    const { error } = await supabase.from('projects').delete().eq('id', p.id)
+    if (error) return setError(error.message)
+    setItems((prev) => prev.filter((x) => x.id !== p.id))
+    if (p.id === activeId) router.push('/') // "/" redirects to another project, or shows the empty state
+    router.refresh()
   }
 
   async function createProject(e: React.FormEvent<HTMLFormElement>) {
@@ -35,10 +46,14 @@ export default function Sidebar({ projects, userId, email, name }: Props) {
     if (!projectName) return setNaming(false)
     const { data, error } = await supabase.from('projects').insert({ name: projectName }).select('id').single()
     if (error || !data) return setError(error?.message ?? 'Could not create the project')
+    setItems((prev) => [
+      ...prev,
+      { id: data.id, name: projectName, is_pinned: false, updated_at: new Date().toISOString() },
+    ])
     setNaming(false)
     setError(null)
-    router.refresh()
     router.push(`/p/${data.id}`)
+    router.refresh()
   }
 
   const row = (p: Project) => (
@@ -53,7 +68,14 @@ export default function Sidebar({ projects, userId, email, name }: Props) {
         aria-label={p.is_pinned ? `Unpin ${p.name}` : `Pin ${p.name}`}
         onClick={() => togglePin(p)}
       >
-        <PinIcon size={12} />
+        <PinIcon size={14} />
+      </button>
+      <button
+        className="pin-btn"
+        aria-label={`Delete ${p.name}`}
+        onClick={() => deleteProject(p)}
+      >
+        <TrashIcon size={15} />
       </button>
     </li>
   )

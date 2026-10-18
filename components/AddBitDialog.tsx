@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { TAG_COLORS, detectType, normalizeUrl } from '@/lib/utils'
-import type { BitType, Project, Tag } from '@/lib/types'
+import type { BitType, Project, Tag, Bit } from '@/lib/types'
 
 const TYPES: { value: BitType; label: string }[] = [
   { value: 'bookmark', label: 'Bookmark' },
@@ -11,20 +11,20 @@ const TYPES: { value: BitType; label: string }[] = [
   { value: 'post', label: 'Post embed' },
 ]
 
-type Props = { projects: Project[]; defaultProjectId?: string; onClose: () => void }
+type Props = { projects: Project[]; defaultProjectId?: string; bit?: Bit; onClose: () => void }
 
-export default function AddBitDialog({ projects, defaultProjectId, onClose }: Props) {
+export default function AddBitDialog({ projects, defaultProjectId, bit, onClose }: Props) {
   const supabase = createClient()
   const router = useRouter()
   const { id: currentId } = useParams<{ id?: string }>()
 
-  const [url, setUrl] = useState('')
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-  const [thumb, setThumb] = useState<string | null>(null)
-  const [type, setType] = useState<BitType>('bookmark')
-  const [projectId, setProjectId] = useState(defaultProjectId ?? projects[0]?.id ?? '')
-  const [tags, setTags] = useState<string[]>([])
+  const [url, setUrl] = useState(bit?.url ?? '')
+  const [title, setTitle] = useState(bit?.title ?? '')
+  const [description, setDescription] = useState(bit?.description ?? '')
+  const [thumb, setThumb] = useState<string | null>(bit?.thumbnail_url ?? null)
+  const [type, setType] = useState<BitType>(bit?.type ?? 'bookmark')
+  const [projectId, setProjectId] = useState(bit?.project_id ?? defaultProjectId ?? projects[0]?.id ?? '')
+  const [tags, setTags] = useState<string[]>(bit?.tags.map((t) => t.name) ?? [])
   const [tagInput, setTagInput] = useState('')
   const [known, setKnown] = useState<Tag[]>([])
   const [busy, setBusy] = useState(false)
@@ -49,7 +49,7 @@ export default function AddBitDialog({ projects, defaultProjectId, onClose }: Pr
       setTitle((t) => t || meta.title || '')
       setDescription((d) => d || meta.description || '')
       setThumb((x) => x || meta.image || null)
-    } catch {}
+    } catch { }
   }
 
   function addTag(raw: string) {
@@ -83,27 +83,34 @@ export default function AddBitDialog({ projects, defaultProjectId, onClose }: Pr
       tagIds.push(...(data ?? []).map((t) => t.id))
     }
 
-    const { data: bit, error: bitError } = await supabase
-      .from('bits')
-      .insert({
-        project_id: projectId,
-        type,
-        title: title.trim() || new URL(clean).hostname.replace(/^www\./, ''),
-        description: description.trim() || null,
-        url: clean,
-        thumbnail_url: thumb,
-      })
-      .select('id')
-      .single()
-    if (bitError || !bit) return fail(bitError?.message ?? 'Could not save the bit.')
+    const fields = {
+      project_id: projectId,
+      type,
+      title: title.trim() || new URL(clean).hostname.replace(/^www\./, ''),
+      description: description.trim() || null,
+      url: clean,
+      thumbnail_url: thumb,
+    }
+
+    let bitId = bit?.id
+    if (bit) {
+      const { error } = await supabase.from('bits').update(fields).eq('id', bit.id)
+      if (error) return fail(error.message)
+      const { error: clearError } = await supabase.from('bit_tags').delete().eq('bit_id', bit.id)
+      if (clearError) return fail(clearError.message)
+    } else {
+      const { data, error } = await supabase.from('bits').insert(fields).select('id').single()
+      if (error || !data) return fail(error?.message ?? 'Could not save the bit.')
+      bitId = data.id
+    }
 
     if (tagIds.length) {
-      const { error } = await supabase.from('bit_tags').insert(tagIds.map((tag_id) => ({ bit_id: bit.id, tag_id })))
+      const { error } = await supabase.from('bit_tags').insert(tagIds.map((tag_id) => ({ bit_id: bitId!, tag_id })))
       if (error) return fail(error.message)
     }
 
     router.refresh()
-    if (projectId !== currentId) router.push(`/p/${projectId}`)
+    if (!bit && projectId !== currentId) router.push(`/p/${projectId}`)
     onClose()
   }
 

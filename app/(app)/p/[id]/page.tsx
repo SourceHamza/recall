@@ -14,14 +14,19 @@ export default async function ProjectPage({
 }) {
   const { id } = await params
   const { q } = await searchParams
+
   const supabase = await createClient()
 
-  const { data: project } = await supabase
-    .from('projects')
-    .select('id, name, updated_at')
-    .eq('id', id)
-    .maybeSingle()
-  if (!project) notFound()
+const { data: projects } = await supabase
+  .from('projects')
+  .select('id, name, is_pinned, updated_at')
+  .order('created_at')
+
+const project = projects?.find((p) => p.id === id)
+if (!project) notFound()
+
+
+
 
   const { data: { user } } = await supabase.auth.getUser()
   const { data: profile } = await supabase.from('profiles').select('display_name').eq('id', user!.id).maybeSingle()
@@ -50,7 +55,7 @@ export default async function ProjectPage({
         ) : (
           <div className="bits">
             {bits.map((bit) => (
-              <BitRow key={bit.id} bit={bit} author={author} />
+              <BitRow key={bit.id} bit={bit} author={author} projects={projects ?? []} />
             ))}
           </div>
         )}
