@@ -26,7 +26,6 @@ export async function middleware(request: NextRequest) {
   const isPublic = onAuthPage || path.startsWith('/auth')
 
   if (!user) {
-    // Signed-out visitors see the landing page at "/" (the URL stays "/")
     if (path === '/') return NextResponse.rewrite(new URL('/welcome', request.url))
     if (!isPublic) return NextResponse.redirect(new URL('/', request.url))
   }
@@ -35,5 +34,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
+ matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|mp4|webm)$).*)'],
 }

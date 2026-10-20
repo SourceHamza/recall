@@ -138,3 +138,12 @@ ul { list-style: none; }
 .google-btn:disabled { opacity: 0.6; cursor: default; }
 .welcome-alt { font-size: 12px; color: var(--muted); }
 .welcome-alt:hover { color: var(--text); }
+.auth .login { background: #111111; } /* your gray panel; change the colour freely */
+
+.auth { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1.1fr); min-height: 100dvh; }
+.auth-media { position: sticky; top: 0; height: 100dvh; background: #0e0e0e; }
+.auth-media Image { width: 50%; height: 100%; object-fit: cover; }
+@media (max-width: 800px) {
+  .auth { grid-template-columns: 1fr; }
+  .auth-media { display: none; } /* phones don't download a video they never show */
+}

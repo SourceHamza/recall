@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import Image from 'next/image'
 
 export default function LoginPage() {
   const supabase = createClient()
@@ -28,23 +29,36 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="login">
-      <form onSubmit={submit} className="dialog">
-        <h1>{mode === 'in' ? 'Sign in to Recall' : 'Create your Recall account'}</h1>
-        <label className="field">
-          Email
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
-        </label>
-        <label className="field">
-          Password
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={6} required />
-        </label>
-        {message && <p className="form-error" role="alert">{message}</p>}
-        <button className="btn primary" disabled={busy}>{mode === 'in' ? 'Sign in' : 'Create account'}</button>
-        <button type="button" className="link-btn" onClick={() => setMode(mode === 'in' ? 'up' : 'in')}>
-          {mode === 'in' ? 'New here? Create an account' : 'Have an account? Sign in'}
-        </button>
-      </form>
+    <div className="auth">
+
+
+      <div className="login">
+        <form onSubmit={submit} className="dialog">
+          <h1>{mode === 'in' ? 'Sign in to Recall' : 'Create your Recall account'}</h1>
+          <label className="field">
+            Email
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
+          </label>
+          <label className="field">
+            Password
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={6} required />
+          </label>
+          {message && <p className="form-error" role="alert">{message}</p>}
+          <button className="btn primary" disabled={busy}>{mode === 'in' ? 'Sign in' : 'Create account'}</button>
+          <button type="button" className="link-btn" onClick={() => setMode(mode === 'in' ? 'up' : 'in')}>
+            {mode === 'in' ? 'New here? Create an account' : 'Have an account? Sign in'}
+          </button>
+        </form>
+      </div>
+      <aside className="auth-media">
+        <Image
+          src="/login.png"
+          alt="Login background"
+          fill
+          priority
+          style={{ objectFit: "cover" }}
+        />
+      </aside>
     </div>
   )
 }
