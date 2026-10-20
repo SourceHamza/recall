@@ -21,10 +21,16 @@ export async function middleware(request: NextRequest) {
   )
 
   const { data: { user } } = await supabase.auth.getUser()
-  const onLogin = request.nextUrl.pathname.startsWith('/login')
+  const path = request.nextUrl.pathname
+  const onAuthPage = path === '/welcome' || path.startsWith('/login')
+  const isPublic = onAuthPage || path.startsWith('/auth')
 
-  if (!user && !onLogin) return NextResponse.redirect(new URL('/login', request.url))
-  if (user && onLogin) return NextResponse.redirect(new URL('/', request.url))
+  if (!user) {
+    // Signed-out visitors see the landing page at "/" (the URL stays "/")
+    if (path === '/') return NextResponse.rewrite(new URL('/welcome', request.url))
+    if (!isPublic) return NextResponse.redirect(new URL('/', request.url))
+  }
+  if (user && onAuthPage) return NextResponse.redirect(new URL('/', request.url))
   return response
 }
 
